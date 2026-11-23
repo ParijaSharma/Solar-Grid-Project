@@ -1,50 +1,30 @@
+
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,AlertCircle,BrainCircuit,CheckCircle2,Database,Play,RefreshCw,TrendingUp,Zap,
+  Activity,
+  AlertCircle,
+  Clock3,
+  Database,
+  Play,
+  RefreshCw,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import {
-  fetchFarmHistory,fetchFarmMetrics,fetchFarmReplay,startFarmReplay,fetchFarmPrediction,
+  fetchFarmHistory,
+  fetchFarmReplay,
+  startFarmReplay,
 } from "../api/client";
 import "./ForecastView.css";
-import "./FarmReplayView.css";
 
 function formatNumber(value, digits = 2) {
   const number = Number(value);
+
   if (!Number.isFinite(number)) return "—";
+
   return number.toLocaleString("en-IN", {
     maximumFractionDigits: digits,
   });
-}
-
-function getMetricCards(metrics) {
-  if (!metrics || typeof metrics !== "object") return [];
-  const cards = [];
-  function walk(object, prefix = "") {
-    Object.entries(object).forEach(([key, value]) => {
-      const label = prefix
-        ? `${prefix} / ${key}`
-        : key;
-
-      if (
-        typeof value === "number" &&
-        Number.isFinite(value)
-      ) {
-        cards.push({
-          label: label.replaceAll("_", " "),
-          value,
-        });
-      } else if (
-        value &&
-        typeof value === "object" &&
-        !Array.isArray(value)
-      ) {
-        walk(value, label);
-      }
-    });
-  }
-
-  walk(metrics);
-  return cards.slice(0, 8);
 }
 
 function GenerationChart({ records }) {
@@ -55,8 +35,9 @@ function GenerationChart({ records }) {
 
   if (!chartRecords.length) {
     return (
-      <div className="farm-chart-empty">
-        Run a replay to view generation data.
+      <div className="forecast-empty">
+        <Activity size={24} />
+        <p>No generation records available.</p>
       </div>
     );
   }
@@ -90,23 +71,23 @@ function GenerationChart({ records }) {
       .join(" ");
 
   return (
-    <div className="farm-chart-wrapper">
-      <div className="farm-chart-legend">
+    <div className="forecast-chart-wrapper">
+      <div className="forecast-legend">
         <span>
-          <i className="legend-dot actual-dot" />
+          <i className="forecast-dot actual" />
           Actual generation
         </span>
         <span>
-          <i className="legend-dot predicted-dot" />
+          <i className="forecast-dot predicted" />
           Predicted generation
         </span>
       </div>
 
       <svg
-        className="farm-chart"
+        className="forecast-chart"
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label="Actual and predicted solar generation chart"
+        aria-label="Actual and predicted solar generation comparison"
       >
         {[0, 1, 2, 3, 4].map((line) => {
           const y =
@@ -120,28 +101,28 @@ function GenerationChart({ records }) {
               x2={width - padding}
               y1={y}
               y2={y}
-              className="farm-chart-gridline"
+              className="forecast-gridline"
             />
           );
         })}
 
         <polyline
           points={getPoints("actual_ac_power")}
-          className="farm-chart-line actual-line"
+          className="forecast-line actual-line"
         />
 
         <polyline
           points={getPoints("predicted_ac_power")}
-          className="farm-chart-line predicted-line"
+          className="forecast-line predicted-line"
         />
       </svg>
 
-      <div className="farm-chart-axis-labels">
+      <div className="forecast-axis-labels">
         <span>Earlier records</span>
         <span>Latest records</span>
       </div>
 
-      <p className="farm-chart-note">
+      <p className="forecast-chart-note">
         Showing the latest {chartRecords.length} records.
         Values use the dataset's AC_POWER units.
       </p>
@@ -150,88 +131,85 @@ function GenerationChart({ records }) {
 }
 
 function ForecastView({ selectedPlant = 1 }) {
-  const [metrics, setMetrics] = useState(null);
   const [records, setRecords] = useState([]);
-  const [replayId, setReplayId] = useState("");
-  const [replaySummary, setReplaySummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [replayLoading, setReplayLoading] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [replayId, setReplayId] = useState("");
+  const [replaySummary, setReplaySummary] = useState(null);
 
-  const [inputs, setInputs] = useState({
-    timestamp: "2020-06-11T12:00",
-    irradiation: "0.75",
-    ambient_temperature: "30",
-    module_temperature: "42",
-  });
-
-  const [prediction, setPrediction] = useState(null);
-  const [predictionLoading, setPredictionLoading] =
-    useState(false);
+  const isPrimaryPlant = Number(selectedPlant) === 1;
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadData() {
+    async function loadHistory() {
       setLoading(true);
       setError("");
-      setNotice("");
       setRecords([]);
       setReplayId("");
       setReplaySummary(null);
 
-      const metricsResponse = await fetchFarmMetrics();
+      const response = await fetchFarmHistory(
+        Number(selectedPlant),
+        200
+      );
 
       if (cancelled) return;
 
-      if (metricsResponse.error) {
-        setError(metricsResponse.error);
+      if (response.error) {
+        setError(response.error);
       } else {
-        setMetrics(metricsResponse.data);
+        setRecords(response.data?.records || []);
       }
 
-      if (Number(selectedPlant) === 2) {
-        const historyResponse = await fetchFarmHistory(2, 200);
-
-        if (cancelled) return;
-
-        if (historyResponse.error) {
-          setError(historyResponse.error);
-        } else {
-          setRecords(historyResponse.data?.records || []);
-          setNotice(
-            "Plant 2 is being evaluated using the Plant 1 trained model. These are cross-plant evaluation results."
-          );
-        }
-      } else {
-        setNotice(
-          "Plant 1 is the primary training and historical replay plant."
-        );
-      }
-
-      if (!cancelled) setLoading(false);
+      setLoading(false);
     }
 
-    loadData();
+    loadHistory();
 
     return () => {
       cancelled = true;
     };
   }, [selectedPlant]);
 
-  const metricCards = useMemo(
-    () => getMetricCards(metrics),
-    [metrics]
-  );
+  const summary = useMemo(() => {
+    if (!records.length) return null;
+
+    const actual = records.map(
+      (record) => Number(record.actual_ac_power) || 0
+    );
+
+    const predicted = records.map(
+      (record) => Number(record.predicted_ac_power) || 0
+    );
+
+    const errors = records.map(
+      (record) =>
+        Math.abs(
+          Number(record.actual_ac_power) -
+            Number(record.predicted_ac_power)
+        )
+    );
+
+    const average = (values) =>
+      values.reduce((sum, value) => sum + value, 0) /
+      values.length;
+
+    return {
+      averageActual: average(actual),
+      averagePredicted: average(predicted),
+      mae: average(errors),
+      count: records.length,
+    };
+  }, [records]);
 
   async function handleReplay() {
-    if (Number(selectedPlant) !== 1) return;
+    if (!isPrimaryPlant) return;
 
     setReplayLoading(true);
     setError("");
     setReplaySummary(null);
-    setRecords([]);
 
     const response = await startFarmReplay(200);
 
@@ -257,10 +235,10 @@ function ForecastView({ selectedPlant = 1 }) {
   }
 
   async function handleRefresh() {
-    if (Number(selectedPlant) === 1 && replayId) {
-      setReplayLoading(true);
-      setError("");
+    setLoading(true);
+    setError("");
 
+    if (isPrimaryPlant && replayId) {
       const response = await fetchFarmReplay(replayId);
 
       if (response.error) {
@@ -268,373 +246,209 @@ function ForecastView({ selectedPlant = 1 }) {
       } else {
         setRecords(response.data?.records || []);
       }
-
-      setReplayLoading(false);
-      return;
-    }
-
-    if (Number(selectedPlant) === 2) {
-      setLoading(true);
-      const response = await fetchFarmHistory(2, 200);
+    } else {
+      const response = await fetchFarmHistory(
+        Number(selectedPlant),
+        200
+      );
 
       if (response.error) {
         setError(response.error);
       } else {
         setRecords(response.data?.records || []);
       }
-
-      setLoading(false);
-    }
-  }
-
-  async function handlePrediction(event) {
-    event.preventDefault();
-    setError("");
-    setPrediction(null);
-
-    if (Number(selectedPlant) !== 1) {
-      setError(
-        "Manual prediction is currently available for Plant 1 only."
-      );
-      return;
     }
 
-    const irradiation = Number(inputs.irradiation);
-    const ambient = Number(inputs.ambient_temperature);
-    const module = Number(inputs.module_temperature);
-
-    if (
-      !inputs.timestamp ||
-      !Number.isFinite(irradiation) ||
-      !Number.isFinite(ambient) ||
-      !Number.isFinite(module)
-    ) {
-      setError("Enter valid values for all prediction fields.");
-      return;
-    }
-
-    setPredictionLoading(true);
-
-    const response = await fetchFarmPrediction({
-      timestamp: new Date(inputs.timestamp).toISOString(),
-      irradiation,
-      ambient_temperature: ambient,
-      module_temperature: module,
-    });
-
-    if (response.error) {
-      setError(response.error);
-    } else {
-      setPrediction(response.data);
-    }
-
-    setPredictionLoading(false);
+    setLoading(false);
   }
 
   return (
-    <section className="farm-forecast-page">
-      <div className="farm-forecast-header">
+    <section className="forecast-page">
+      <header className="forecast-header">
         <div>
-          <span className="farm-eyebrow">
-            SOLARHUB AI / FARM MODEL ANALYTICS
+          <span className="forecast-eyebrow">
+            SOLARHUB AI / ENERGY
           </span>
-          <h2>Forecast &amp; Model Evaluation</h2>
+          <h2>Energy Forecast</h2>
           <p>
-            Historical generation replay, model performance,
-            and cross-plant evaluation.
+            Understand expected generation and compare it
+            with recorded plant performance.
           </p>
         </div>
 
-        <span className="farm-plant-label">
+        <span className="forecast-plant-tag">
           Plant {selectedPlant}
         </span>
-      </div>
+      </header>
 
-      <div className="farm-info-banner">
+      <div className="forecast-data-notice">
         <Database size={18} />
-        <span>
-          Historical dataset replay is used here. This is not
-          live IoT telemetry.
-        </span>
+        <div>
+          <strong>Historical analysis</strong>
+          <span>
+            Results are based on recorded datasets and model
+            evaluation. This is not a live or future weather forecast.
+          </span>
+        </div>
       </div>
 
-      <article className="farm-panel">
-        <div className="farm-panel-heading">
-          <div className="farm-panel-icon">
-            <BrainCircuit size={20} />
-          </div>
+      <div className="forecast-section-heading">
+        <div>
+          <h3>Generation overview</h3>
+          <p>
+            A comparison of recorded and model-estimated AC power.
+          </p>
+        </div>
+
+        <button
+          className="forecast-refresh"
+          onClick={handleRefresh}
+          disabled={loading || replayLoading}
+        >
+          <RefreshCw size={15} />
+          Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="forecast-loading">
+          <RefreshCw size={20} className="forecast-spin" />
+          Loading generation records...
+        </div>
+      ) : summary ? (
+        <div className="forecast-summary-grid">
+          <article className="forecast-summary-card">
+            <div className="forecast-summary-icon">
+              <Zap size={19} />
+            </div>
+            <span>Average actual generation</span>
+            <strong>{formatNumber(summary.averageActual)}</strong>
+            <small>AC_POWER dataset units</small>
+          </article>
+
+          <article className="forecast-summary-card">
+            <div className="forecast-summary-icon">
+              <TrendingUp size={19} />
+            </div>
+            <span>Average predicted generation</span>
+            <strong>{formatNumber(summary.averagePredicted)}</strong>
+            <small>AC_POWER dataset units</small>
+          </article>
+
+          <article className="forecast-summary-card">
+            <div className="forecast-summary-icon">
+              <Activity size={19} />
+            </div>
+            <span>Mean absolute error</span>
+            <strong>{formatNumber(summary.mae)}</strong>
+            <small>Average absolute difference</small>
+          </article>
+
+          <article className="forecast-summary-card">
+            <div className="forecast-summary-icon">
+              <Database size={19} />
+            </div>
+            <span>Records analysed</span>
+            <strong>{formatNumber(summary.count, 0)}</strong>
+            <small>Historical observations</small>
+          </article>
+        </div>
+      ) : (
+        <div className="forecast-empty">
+          <Database size={24} />
+          <p>No historical evaluation records found.</p>
+        </div>
+      )}
+
+      <article className="forecast-panel">
+        <div className="forecast-panel-heading">
           <div>
-            <h3>Farm-level Random Forest</h3>
+            <h3>Actual vs predicted generation</h3>
             <p>
-              Predicts aggregated solar farm AC power using
-              weather and time-based features.
+              See how closely model estimates follow recorded generation.
             </p>
           </div>
-          <span className="farm-status-ready">
-            <CheckCircle2 size={14} />
-            Model trained
+          <span className="forecast-history-label">
+            <Clock3 size={14} />
+            Historical data
           </span>
         </div>
 
-        <div className="farm-model-details">
-          <div>
-            <span>ALGORITHM</span>
-            <strong>Random Forest Regressor</strong>
-          </div>
-          <div>
-            <span>TARGET</span>
-            <strong>Aggregated AC_POWER</strong>
-          </div>
-          <div>
-            <span>TRAINING PLANT</span>
-            <strong>Plant 1</strong>
-          </div>
-          <div>
-            <span>INPUT FEATURES</span>
-            <strong>8 engineered features</strong>
-          </div>
-        </div>
-      </article>
-
-      <article className="farm-panel">
-        <div className="farm-panel-heading">
-          <div className="farm-panel-icon">
-            <Activity size={20} />
-          </div>
-          <div>
-            <h3>Model Performance</h3>
-            <p>
-              Metrics from the trained model evaluation.
-            </p>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="farm-muted">Loading model metrics...</p>
-        ) : metricCards.length ? (
-          <div className="farm-metrics-grid">
-            {metricCards.map((metric, index) => (
-              <div className="farm-metric-card" key={index}>
-                <span>{metric.label}</span>
-                <strong>{formatNumber(metric.value, 3)}</strong>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="farm-muted">
-            No model metrics were returned by the backend.
-          </p>
-        )}
-      </article>
-
-      <article className="farm-panel">
-        <div className="farm-panel-heading">
-          <div className="farm-panel-icon">
-            <TrendingUp size={20} />
-          </div>
-          <div>
-            <h3>Actual vs Predicted Generation</h3>
-            <p>
-              Compare historical generation with model predictions.
-            </p>
-          </div>
-        </div>
-
-        {notice && (
-          <div className="farm-notice">
-            <AlertCircle size={16} />
-            <span>{notice}</span>
-          </div>
-        )}
-
-        <div className="farm-replay-controls">
-          {Number(selectedPlant) === 1 ? (
-            <button
-              className="farm-primary-button"
-              onClick={handleReplay}
-              disabled={replayLoading}
-            >
-              {replayLoading ? (
-                <RefreshCw size={16} className="farm-spin" />
-              ) : (
-                <Play size={16} />
-              )}
-              {replayLoading
-                ? "Running historical replay..."
-                : "Run historical replay"}
-            </button>
-          ) : (
-            <span className="farm-cross-eval-label">
-              Cross-plant evaluation
-            </span>
-          )}
-
-          <button
-            className="farm-secondary-button"
-            onClick={handleRefresh}
-            disabled={loading || replayLoading}
-          >
-            <RefreshCw size={15} />
-            Refresh
-          </button>
-        </div>
+        <GenerationChart records={records} />
 
         {replaySummary && (
-          <div className="farm-replay-summary">
+          <div className="forecast-replay-result">
             <div>
-              <span>REPLAY COMPLETED</span>
+              <span>Replay completed</span>
               <strong>
-                {replaySummary.records_processed} records
+                {formatNumber(replaySummary.records_processed, 0)} records
               </strong>
             </div>
             <div>
-              <span>REPLAY MAE</span>
-              <strong>{formatNumber(replaySummary.mae, 3)}</strong>
+              <span>Replay MAE</span>
+              <strong>{formatNumber(replaySummary.mae)}</strong>
             </div>
             <div>
-              <span>DATA SOURCE</span>
+              <span>Source</span>
               <strong>Historical CSV</strong>
             </div>
           </div>
         )}
 
-        {records.length > 0 ? (
-          <GenerationChart records={records} />
-        ) : (
-          <div className="farm-chart-empty">
-            {loading || replayLoading
-              ? "Loading generation records..."
-              : Number(selectedPlant) === 1
-                ? "Run the historical replay to load records from MongoDB."
-                : "No Plant 2 evaluation records available."}
-          </div>
-        )}
-
-        {records.length > 0 && (
-          <div className="farm-record-count">
-            Displaying {records.length} records
-            {replayId && (
-              <span> · Replay ID: {replayId}</span>
-            )}
-          </div>
-        )}
-      </article>
-
-      <article className="farm-panel">
-        <div className="farm-panel-heading">
-          <div className="farm-panel-icon">
-            <Zap size={20} />
-          </div>
-          <div>
-            <h3>Manual Prediction Sandbox</h3>
-            <p>
-              Test the farm-level model with custom weather inputs.
-            </p>
-          </div>
-        </div>
-
-        {Number(selectedPlant) === 1 ? (
-          <form
-            className="farm-prediction-form"
-            onSubmit={handlePrediction}
-          >
-            <label>
-              Timestamp
-              <input
-                type="datetime-local"
-                value={inputs.timestamp}
-                onChange={(event) =>
-                  setInputs({
-                    ...inputs,
-                    timestamp: event.target.value,
-                  })
-                }
-                required
-              />
-            </label>
-
-            <label>
-              Irradiation
-              <input
-                type="number"
-                min="0"
-                max="1.5"
-                step="0.01"
-                value={inputs.irradiation}
-                onChange={(event) =>
-                  setInputs({
-                    ...inputs,
-                    irradiation: event.target.value,
-                  })
-                }
-                required
-              />
-            </label>
-
-            <label>
-              Ambient temperature (°C)
-              <input
-                type="number"
-                step="0.1"
-                value={inputs.ambient_temperature}
-                onChange={(event) =>
-                  setInputs({
-                    ...inputs,
-                    ambient_temperature: event.target.value,
-                  })
-                }
-                required
-              />
-            </label>
-
-            <label>
-              Module temperature (°C)
-              <input
-                type="number"
-                step="0.1"
-                value={inputs.module_temperature}
-                onChange={(event) =>
-                  setInputs({
-                    ...inputs,
-                    module_temperature: event.target.value,
-                  })
-                }
-                required
-              />
-            </label>
-
-            <button
-              className="farm-primary-button"
-              type="submit"
-              disabled={predictionLoading}
-            >
-              {predictionLoading
-                ? "Predicting..."
-                : "Predict farm generation"}
-            </button>
-          </form>
-        ) : (
-          <p className="farm-muted">
-            Manual prediction is available for the primary
-            training plant only.
+        {replayId && (
+          <p className="forecast-replay-id">
+            Replay ID: {replayId}
           </p>
         )}
+      </article>
 
-        {prediction && (
-          <div className="farm-prediction-result">
-            <span>PREDICTED FARM AC POWER</span>
-            <strong>
-              {formatNumber(prediction.predicted_ac_power, 3)}
-            </strong>
-            <small>
-              {prediction.unit || "AC_POWER dataset units"}
-            </small>
-          </div>
+      <article className="forecast-panel forecast-action-panel">
+        <div className="forecast-action-icon">
+          <Play size={19} />
+        </div>
+
+        <div className="forecast-action-content">
+          <h3>Update generation analysis</h3>
+          <p>
+            {isPrimaryPlant
+              ? "Run a historical replay to process recorded Plant 1 data and retrieve the results."
+              : "Plant 2 results use a model trained on Plant 1. Treat this as cross-plant evaluation, not a validated Plant 2 forecast."}
+          </p>
+        </div>
+
+        {isPrimaryPlant ? (
+          <button
+            className="forecast-run-button"
+            onClick={handleReplay}
+            disabled={replayLoading}
+          >
+            {replayLoading ? (
+              <RefreshCw size={16} className="forecast-spin" />
+            ) : (
+              <Play size={16} />
+            )}
+            {replayLoading ? "Running replay..." : "Run replay"}
+          </button>
+        ) : (
+          <span className="forecast-limited-label">
+            Cross-plant evaluation
+          </span>
         )}
       </article>
 
+      {!isPrimaryPlant && (
+        <div className="forecast-plant-notice">
+          <AlertCircle size={17} />
+          <span>
+            Plant 2 predictions are not independently validated.
+            Model performance on this plant may differ significantly
+            from Plant 1.
+          </span>
+        </div>
+      )}
+
       {error && (
-        <div className="farm-error">
+        <div className="forecast-error">
           <AlertCircle size={17} />
           <span>{error}</span>
         </div>
@@ -642,4 +456,5 @@ function ForecastView({ selectedPlant = 1 }) {
     </section>
   );
 }
+
 export default ForecastView;

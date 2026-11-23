@@ -72,12 +72,10 @@ def _safe_float(value) -> Optional[float]:
     except (TypeError, ValueError):
         return None
 
-
 _test_results_cache: Optional[pd.DataFrame] = None
 _plant1_weather_cache: Optional[pd.DataFrame] = None
 _plant1_gen_cache: Optional[pd.DataFrame] = None
 _plant2_data_cache: Optional[pd.DataFrame] = None
-
 
 def _load_test_results() -> pd.DataFrame:
     """Load module1_test_results.csv with column validation (cached)."""
@@ -96,7 +94,6 @@ def _load_test_results() -> pd.DataFrame:
     _test_results_cache = df
     return _test_results_cache
 
-
 def _load_plant1_weather() -> pd.DataFrame:
     """Plant 1 Weather Sensor Data (YYYY-MM-DD HH:MM:SS format, cached)."""
     global _plant1_weather_cache
@@ -108,7 +105,6 @@ def _load_plant1_weather() -> pd.DataFrame:
     df = df.sort_values("DATE_TIME")
     _plant1_weather_cache = df
     return _plant1_weather_cache
-
 
 def _load_plant1_generation() -> pd.DataFrame:
     """Plant 1 Generation Data (DD-MM-YYYY HH:MM format, cached)."""
@@ -122,7 +118,6 @@ def _load_plant1_generation() -> pd.DataFrame:
     df = df.sort_values("DATE_TIME")
     _plant1_gen_cache = df
     return _plant1_gen_cache
-
 
 def _load_plant2_data() -> pd.DataFrame:
     """
@@ -152,9 +147,7 @@ def _get_record_closest_to_current_time(plant: int) -> dict:
     """
     if plant == 1:
         generation = _load_plant1_generation().copy()
-
         weather = _load_plant1_weather().copy()
-
         # Aggregate inverter output for each timestamp.
         generation = (
             generation.groupby("DATE_TIME", as_index=False)["AC_POWER"]
