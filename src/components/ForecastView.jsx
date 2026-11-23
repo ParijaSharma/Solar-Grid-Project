@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import "./ForecastView.css";
 import {
   TrendingUp,
@@ -68,12 +67,17 @@ function formatValue(value, digits = 4) {
   return number.toFixed(digits);
 }
 
-function ForecastView() {
+function ForecastView({ selectedPlant = 1 }){
   const [inputs, setInputs] = useState(INITIAL_INPUTS);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  
+  useEffect(() => {
+    setResult(null);
+    setError("");
+  }, [selectedPlant]);
+  
   const updateInput = (field, value) => {
     setInputs((previous) => ({
       ...previous,
@@ -83,7 +87,11 @@ function ForecastView() {
 
   const handlePredict = async (event) => {
     event.preventDefault();
-
+    if (Number(selectedPlant) !== 1) {
+      setError("Forecast model is currently available for Plant 1 only.");
+      setResult(null);
+      return;
+    }
     setError("");
     setResult(null);
 

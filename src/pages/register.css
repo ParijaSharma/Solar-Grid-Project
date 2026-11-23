@@ -1,0 +1,165 @@
+
+/* REGISTER PANEL */
+
+.register-form-panel {
+  overflow-y: auto;
+  justify-content: center;
+  padding: 25px 40px;
+}
+
+.register-form-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 28px 36px;
+  background: #ffffff;
+  border: 1px solid #e9ece5;
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(30, 57, 40, 0.07);
+}
+
+.register-form-card h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  margin-top: 12px;
+}
+
+.register-form-card .auth-description {
+  margin: 9px 0 22px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.register-form-card form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.register-form-card label {
+  margin-bottom: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #354b3e;
+}
+
+.register-form-card .auth-field {
+  height: 45px;
+  margin-bottom: 15px;
+}
+
+/* STAKEHOLDER SELECTION */
+
+.register-form-card .stakeholder-heading {
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+.register-form-card .stakeholder-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.register-form-card .stakeholder-option {
+  min-width: 0;
+  min-height: 76px;
+  padding: 9px 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+
+  background: #fcfdfb !important;
+  border: 1px solid #e2e8df;
+  border-radius: 10px;
+
+  color: #607464 !important;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0;
+}
+
+.register-form-card .stakeholder-option svg {
+  color: #82977f;
+}
+
+.register-form-card .stakeholder-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.register-form-card .stakeholder-option.selected {
+  background: #f8fce9 !important;
+  border-color: #b5d900;
+  color: #58752d !important;
+}
+
+.register-form-card .stakeholder-option.selected svg {
+  color: #a3ca00;
+}
+
+.register-form-card .stakeholder-option:hover {
+  border-color: #a8c66b;
+  transform: translateY(-2px);
+}
+
+.register-form-card .stakeholder-option:focus-within {
+  outline: 2px solid #a8c66b;
+  outline-offset: 3px;
+}
+
+/* BUTTON */
+
+.register-form-card .auth-submit {
+  min-height: 47px;
+}
+
+.register-form-card .auth-divider {
+  margin: 20px 0 14px;
+}
+
+.register-form-card .auth-switch {
+  font-size: 12px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 850px) {
+  .register-form-panel {
+    padding: 20px;
+  }
+
+  .register-form-card {
+    padding: 25px 22px;
+  }
+
+  .register-form-card h1 {
+    font-size: 26px;
+  }
+
+  .register-form-card .stakeholder-options {
+    gap: 7px;
+  }
+}
+
+@media (max-width: 650px) {
+  .register-form-panel {
+    min-height: 720px;
+    padding: 30px 20px 65px;
+  }
+
+  .register-form-card {
+    max-width: 440px;
+    padding: 27px 22px;
+  }
+
+  .register-form-card .stakeholder-option {
+    min-height: 75px;
+    font-size: 10px;
+  }
+}

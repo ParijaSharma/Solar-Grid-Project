@@ -1,11 +1,10 @@
-
 import { MapPin } from "lucide-react";
 import { useTimeTheme } from "../hooks/useTimeTheme";
-import { useDashboard } from "../hooks/useDashboard";
 
-function HeroSection({ selectedPlant = 1 }) {
+
+function HeroSection({ selectedPlant = 1, dashboard }) {
   const { timeTheme, currentTime } = useTimeTheme();
-  const { dashboard } = useDashboard(selectedPlant);
+  // const { dashboard } = useDashboard(selectedPlant);
 
   const formattedTime = currentTime.toLocaleTimeString("en-IN", {
     hour: "2-digit",

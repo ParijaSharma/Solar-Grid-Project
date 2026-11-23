@@ -35,14 +35,19 @@ function reducer(state, action) {
 export function useDashboard(plant = 1) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const timerRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   async function load() {
+    const requestId = ++requestIdRef.current;
     dispatch({ type: "LOADING" });
+
     const [dashRes, histRes] = await Promise.all([
       fetchDashboard(plant),
       fetchHistory(plant, 200),
     ]);
 
+    // Ignore responses belonging to an older request.
+    if (requestId !== requestIdRef.current) return;
     if (dashRes.error || histRes.error) {
       dispatch({
         type: "ERROR",
@@ -61,9 +66,10 @@ export function useDashboard(plant = 1) {
   useEffect(() => {
     load();
     timerRef.current = setInterval(load, POLL_INTERVAL_MS);
-    return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      requestIdRef.current++;
+      clearInterval(timerRef.current);
+    };
   }, [plant]);
-
   return { ...state, refresh: load };
 }

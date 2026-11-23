@@ -1,18 +1,7 @@
-
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import "./DashboardSection.css";
 import {
-  Activity,
-  BarChart3,
-  CloudSun,
-  RefreshCw,
-  Sun,
-  Thermometer,
-  Zap,
-} from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-
+Activity,BarChart3,CloudSun,RefreshCw,Sun,Thermometer,Zap,} from "lucide-react";
 const getNumber = (...values) => {
   for (const value of values) {
     if (value !== null && value !== undefined && value !== "") {
@@ -22,7 +11,6 @@ const getNumber = (...values) => {
   }
   return null;
 };
-
 const formatNumber = (value, digits = 2) =>
   value === null || value === undefined
     ? "—"
@@ -45,50 +33,24 @@ const formatTime = (timestamp) => {
   });
 };
 
-function DashboardSection() {
-  const [plant, setPlant] = useState(1);
-  const [dashboard, setDashboard] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-
-  const fetchDashboard = async (isRefresh = false) => {
-    try {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-
-      setError("");
-
-      const response = await fetch(`${API_URL}/api/dashboard`);
-
-      if (!response.ok) {
-        throw new Error(`Dashboard request failed (${response.status})`);
-      }
-
-      const data = await response.json();
-      setDashboard(data);
-    } catch (err) {
-      setError(err.message || "Unable to load dashboard data.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+function DashboardSection({
+  selectedPlant = 1,
+  dashboard,
+  loading,
+  error,
+  onRefresh,
+}) {
+  const plant = selectedPlant;
+  const refreshing = false;
 
   const activePlant = useMemo(() => {
     if (!dashboard) return null;
 
-    return (
-      dashboard[`plant${plant}`] ||
-      (Number(dashboard.selected_plant) === plant
-        ? dashboard.active_plant
-        : null) ||
-      (plant === 1 ? dashboard.active_plant : null)
-    );
+    if (Number(dashboard.selected_plant) !== Number(plant)) {
+      return null;
+    }
+
+    return dashboard.active_plant;
   }, [dashboard, plant]);
 
   const weather = activePlant?.latest_weather || {};
@@ -270,7 +232,7 @@ function DashboardSection() {
           <Activity size={24} />
           <h3>Unable to load dashboard</h3>
           <p>{error}</p>
-          <button onClick={() => fetchDashboard()}>
+          <button onClick={onRefresh}>
             Try again
           </button>
         </div>
@@ -293,24 +255,13 @@ function DashboardSection() {
         </div>
 
         <div className="dashboard-actions">
-          <div className="plant-switch">
-            <button
-              className={plant === 1 ? "active" : ""}
-              onClick={() => setPlant(1)}
-            >
-              Plant 1
-            </button>
-            <button
-              className={plant === 2 ? "active" : ""}
-              onClick={() => setPlant(2)}
-            >
-              Plant 2
-            </button>
-          </div>
+          <span className="chart-record-count">
+            Plant {selectedPlant}
+          </span>
 
           <button
             className="refresh-button"
-            onClick={() => fetchDashboard(true)}
+            onClick={onRefresh}
             disabled={refreshing}
             aria-label="Refresh dashboard"
           >
@@ -641,5 +592,4 @@ function DashboardSection() {
     </section>
   );
 }
-
 export default DashboardSection;

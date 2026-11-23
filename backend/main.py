@@ -1,7 +1,4 @@
-"""
-SolarHub AI - FastAPI Backend
-Model 1: RandomForestRegressor for AC_POWER prediction (Plant 1)
-"""
+
 import math
 import os
 import json
@@ -14,17 +11,16 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-
-# ---------------------------------------------------------------------------
-# Paths – always relative to this file, not the CWD
-# ---------------------------------------------------------------------------
+from database import check_database_connection
+from auth_routes import router as auth_router
+from installation_routes import router as installation_router
+from telemetry_routes import router as telemetry_router
+from dashboard_routes import router as dashboard_router
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = BASE_DIR / "models"
 
-# ---------------------------------------------------------------------------
-# Model – loaded once at startup
-# ---------------------------------------------------------------------------
+
 try:
     model = joblib.load(MODELS_DIR / "model1_random_forest.joblib")
     with open(MODELS_DIR / "model1_features.json", "r") as f:
@@ -39,24 +35,22 @@ except Exception as exc:
     MODEL_ERROR = str(exc)
     EXPECTED_N_FEATURES = 0
 
-# ---------------------------------------------------------------------------
-# CORS origins
-# ---------------------------------------------------------------------------
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS",
     "http://localhost:5173,http://localhost:4173"
+    "http://localhost:5174,http://localhost:4174"
 )
 ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
 app = FastAPI(
     title="SolarGrid API",
     description="Solar Plant Monitoring & Performance Analytics API",
     version="1.0.0",
 )
-
+app.include_router(auth_router)
+app.include_router(installation_router)
+app.include_router(dashboard_router)
+app.include_router(telemetry_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -64,10 +58,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ---------------------------------------------------------------------------
-# CSV loading helpers
-# ---------------------------------------------------------------------------
 
 def _safe_float(value) -> Optional[float]:
     """Return float or None for NaN/Inf values."""
@@ -375,6 +365,15 @@ class PredictionResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+@app.get("/api/db-health")
+def database_health():
+    connected = check_database_connection()
+
+    return {
+        "database": "MongoDB Atlas",
+        "connected": connected,
+        "status": "healthy" if connected else "unavailable"
+    }
 
 @app.get("/")
 def root():
@@ -563,10 +562,6 @@ def replay_current(
 
 @app.get("/api/dashboard")
 def dashboard(plant: int = Query(1, ge=1, le=2)):
-    """
-    Returns summary statistics and chart-ready data for the dashboard.
-    """
-    # --- Plant 1 test results metrics ---
     try:
         df_test = _load_test_results()
         # Only use rows where actual > 0 to avoid MAPE blow-up

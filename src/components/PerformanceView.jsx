@@ -20,7 +20,6 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { useDashboard } from "../hooks/useDashboard";
 
 function fmt(val, digits = 2) {
   if (val == null || !Number.isFinite(val)) return "—";
@@ -39,10 +38,18 @@ function fmtTime(isoString) {
   }
 }
 
-function PerformanceView({ selectedPlant = 1, onSelectPlant }) {
-  const { loading, error, dashboard, history, refresh } = useDashboard(selectedPlant);
-
-  const activePlant = dashboard?.active_plant ?? dashboard?.plant1 ?? {};
+function PerformanceView({
+  selectedPlant = 1,
+  dashboard,
+  history,
+  loading,
+  error,
+  onRefresh,
+}) {
+  const activePlant =
+  Number(dashboard?.selected_plant) === Number(selectedPlant)
+    ? dashboard?.active_plant ?? {}
+    : {};
   const metrics = activePlant.model_metrics ?? null;
   const isComparable = metrics?.comparable !== false && (history?.records?.length ?? 0) > 0;
   const plantTitle = selectedPlant === 2 ? "Solar Farm B (Plant 2)" : "Solar Farm A (Plant 1)";

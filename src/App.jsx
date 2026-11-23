@@ -1,5 +1,14 @@
 import "./App.css";
+import { useState, useEffect } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import { MapPin, Sun, Moon } from "lucide-react";
+import { useDashboard } from "./hooks/useDashboard";
+import { useAuth } from "./context/AuthContext";
 import Sidebar from "./components/Sidebar";
 import HeroSection from "./components/HeroSection";
 import DashboardSection from "./components/Dashboard";
@@ -9,15 +18,36 @@ import FarmsView from "./components/FarmsView";
 import ReportsView from "./components/ReportsView";
 import SettingsView from "./components/SettingsView";
 import EnteringDashboard from "./components/EnteringDashboard";
-import { useState, useEffect } from "react";
+import Login from "./pages/login";
+import Register from "./pages/register";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-function App() {
-  const [entered, setEntered] = useState(false);
+function LandingRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <EnteringDashboard
+      onEnter={() => navigate("/login")}
+    />
+  );
+}
+
+
+function DashboardLayout() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedPlant, setSelectedPlant] = useState(1);
+  const { user, logout } = useAuth();
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("solargrid-theme") || "dark";
   });
+
+  const {
+    dashboard,
+    history,
+    loading,
+    error,
+    refresh,
+  } = useDashboard(selectedPlant);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -25,16 +55,27 @@ function App() {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setTheme((prev) =>
+      prev === "dark" ? "light" : "dark"
+    );
   };
 
-  if (!entered) {
-    return <EnteringDashboard onEnter={() => setEntered(true)} />;
-  }
+  const handleLogout = () => {
+    logout();
+    navigateToLogin();
+  };
+
+  const navigateToLogin = () => {
+    window.location.href = "/login";
+  };
 
   return (
     <div className="app" data-theme={theme}>
-      <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
+
       <main className="main-content">
         <header className="topbar">
           <div className="search">
@@ -42,48 +83,69 @@ function App() {
           </div>
 
           <div className="topbar-plant-pills">
-            <button
-              className={`topbar-plant-btn ${selectedPlant === 1 ? "active" : ""}`}
-              onClick={() => setSelectedPlant(1)}
-            >
-              Plant 1
-            </button>
-            <button
-              className={`topbar-plant-btn ${selectedPlant === 2 ? "active" : ""}`}
-              onClick={() => setSelectedPlant(2)}
-            >
-              Plant 2
-            </button>
+            {[1, 2].map((plant) => (
+              <button
+                key={plant}
+                className={`topbar-plant-btn ${
+                  selectedPlant === plant ? "active" : ""
+                }`}
+                onClick={() => setSelectedPlant(plant)}
+              >
+                Plant {plant}
+              </button>
+            ))}
           </div>
 
           <button
             className="theme-toggle-btn"
             onClick={toggleTheme}
-            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} mode`}
+            title={`Switch to ${
+              theme === "dark" ? "Light" : "Dark"
+            } mode`}
           >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            <span>{theme === "dark" ? "Light" : "Dark"}</span>
+            {theme === "dark" ? (
+              <Sun size={16} />
+            ) : (
+              <Moon size={16} />
+            )}
+
+            <span>
+              {theme === "dark" ? "Light" : "Dark"}
+            </span>
           </button>
 
           <div className="location">
             <MapPin size={15} />
             Karnataka, IN
           </div>
-          <div className="user">P</div>
+
+          <div className="user" title={user?.name}>
+            {user?.name?.charAt(0).toUpperCase() || "U"}
+          </div>
+
+          <button
+            className="theme-toggle-btn"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </header>
 
         {activeTab === "overview" && (
           <>
             <HeroSection
               selectedPlant={selectedPlant}
-              onSelectPlant={setSelectedPlant}
-              theme={theme}
+              dashboard={dashboard}
+              loading={loading}
             />
+
             <DashboardSection
               selectedPlant={selectedPlant}
-              onSelectPlant={setSelectedPlant}
+              dashboard={dashboard}
+              loading={loading}
+              error={error}
+              onRefresh={refresh}
               onNavigateTab={setActiveTab}
-              theme={theme}
             />
           </>
         )}
@@ -91,11 +153,17 @@ function App() {
         {activeTab === "performance" && (
           <PerformanceView
             selectedPlant={selectedPlant}
-            onSelectPlant={setSelectedPlant}
+            dashboard={dashboard}
+            history={history}
+            loading={loading}
+            error={error}
+            onRefresh={refresh}
           />
         )}
 
-        {activeTab === "forecast" && <ForecastView />}
+        {activeTab === "forecast" && (
+          <ForecastView selectedPlant={selectedPlant} />
+        )}
 
         {activeTab === "farms" && (
           <FarmsView
@@ -105,12 +173,36 @@ function App() {
           />
         )}
 
-        {activeTab === "reports" && <ReportsView selectedPlant={selectedPlant} />}
+        {activeTab === "reports" && (
+          <ReportsView selectedPlant={selectedPlant} />
+        )}
 
-        {activeTab === "settings" && <SettingsView />}
+        {activeTab === "settings" && (
+          <SettingsView />
+        )}
       </main>
     </div>
   );
 }
 
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingRoute />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/dashboard"
+          element={<DashboardLayout />}
+        />
+      </Route>
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
+      />
+    </Routes>
+  );
+}
 export default App;
+
