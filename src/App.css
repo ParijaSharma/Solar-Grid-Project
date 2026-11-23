@@ -753,3 +753,369 @@ input {
     top: 28%;
   }
 }
+
+/* =========================================
+   SOLARHUB AI - COMPACT HERO REDESIGN
+========================================= */
+
+.hero {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 285px;
+  height: 285px;
+  padding: 28px 30px;
+  border-radius: 15px;
+  overflow: hidden;
+  color: #ffffff;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+/* Softer background overlays */
+
+.hero-dawn,
+.hero-morning,
+.hero-afternoon,
+.hero-evening,
+.hero-dusk,
+.hero-night {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero::before {
+  width: 76px;
+  height: 76px;
+  right: 35%;
+  top: 17%;
+  background: rgba(255, 231, 177, 0.65);
+  box-shadow: 0 0 35px rgba(255, 220, 150, 0.18);
+  filter: blur(1px);
+  z-index: -1;
+}
+
+.hero-night::before {
+  width: 55px;
+  height: 55px;
+  right: 35%;
+  top: 17%;
+}
+
+/* Hero heading */
+
+.hero-top {
+  position: relative;
+  z-index: 2;
+  max-width: 52%;
+}
+
+.hero-copy {
+  max-width: 500px;
+}
+
+.greeting {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  opacity: 0.85;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(29px, 3.1vw, 39px);
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.8px;
+}
+
+.hero-tagline {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* Plant information panel */
+
+.plant-card {
+  position: absolute;
+  z-index: 4;
+  right: 22px;
+  bottom: 18px;
+  width: 380px;
+  box-sizing: border-box;
+  padding: 15px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #202c28;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.09);
+  backdrop-filter: blur(14px);
+}
+
+.plant-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-right: 130px;
+}
+
+.plant-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: #159967;
+  background:
+    radial-gradient(at 20% 20%, #ffffff 0%, transparent 55%),
+    linear-gradient(135deg, #e9f7ef, #d7eee2);
+}
+
+.plant-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.plant-header p {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #7b8797;
+}
+
+.status {
+  position: absolute;
+  right: 14px;
+  top: 17px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 20px;
+  background: #eaf5ee;
+  color: #258253;
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2eaa70;
+}
+
+/* Plant statistics */
+
+.plant-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.plant-stats > div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #edf0ee;
+  border-radius: 10px;
+  background: #f8faf9;
+}
+
+.plant-stats .hero-stat-icon {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 7px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.hero-stat-icon.green {
+  color: #159967;
+  background: linear-gradient(135deg, #e9f7ef, #d7eee2);
+}
+
+.hero-stat-icon.orange {
+  color: #df983c;
+  background: linear-gradient(135deg, #fff6e9, #f8e7d0);
+}
+
+.hero-stat-icon.blue {
+  color: #5483d9;
+  background: linear-gradient(135deg, #eff4ff, #dce8fa);
+}
+
+.plant-stats strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.plant-stats small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #8491a0;
+}
+
+/* Date and time */
+
+.hero-meta {
+  position: absolute;
+  z-index: 3;
+  left: 30px;
+  bottom: 17px;
+  display: flex;
+  gap: 10px;
+  font-size: 9px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0.85;
+}
+
+/* Dark theme panel */
+
+[data-theme="dark"] .plant-card {
+  background: rgba(27, 32, 39, 0.96);
+  color: #edf2f0;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="dark"] .plant-header h3 {
+  color: #edf2f0;
+}
+
+[data-theme="dark"] .plant-header p,
+[data-theme="dark"] .plant-stats small {
+  color: #a3afbd;
+}
+
+[data-theme="dark"] .plant-stats > div {
+  background: #222a31;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .plant-stats strong {
+  color: #edf2f0;
+}
+
+[data-theme="dark"] .status {
+  background: rgba(46, 170, 112, 0.15);
+  color: #7cdbab;
+}
+
+[data-theme="dark"] .plant-icon {
+  background: rgba(46, 170, 112, 0.15);
+  color: #7cdbab;
+}
+
+/* Tablet */
+
+@media (max-width: 1000px) {
+  .hero {
+    height: 300px;
+    min-height: 300px;
+    padding: 24px;
+  }
+
+  .plant-card {
+    right: 18px;
+    width: 355px;
+  }
+
+  .hero-top {
+    max-width: 48%;
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 800px) {
+  .hero {
+    height: auto;
+    min-height: 370px;
+    padding: 24px;
+  }
+
+  .hero-top {
+    max-width: 100%;
+  }
+
+  .hero h1 {
+    font-size: 31px;
+  }
+
+  .plant-card {
+    left: 18px;
+    right: 18px;
+    bottom: 22px;
+    width: auto;
+  }
+
+  .hero-meta {
+    display: none;
+  }
+
+  .hero::before {
+    right: 12%;
+    top: 13%;
+    width: 55px;
+    height: 55px;
+  }
+}
+@media (max-width: 480px) {
+  .hero {
+    min-height: 405px;
+    padding: 21px 17px;
+  }
+  .hero h1 {
+    font-size: 27px;
+  }
+  .hero-tagline {
+    font-size: 11px;
+  }
+  .plant-card {
+    left: 12px;
+    right: 12px;
+    padding: 12px;
+  }
+  .plant-header {
+    padding-right: 0;
+  }
+  .status {
+    position: static;
+    display: inline-flex;
+    margin-top: 10px;
+  }
+  .plant-stats {
+    gap: 5px;
+  }
+  .plant-stats > div {
+    padding: 7px;
+  }
+  .plant-stats strong {
+    font-size: 12px;
+  }
+  .plant-stats small {
+    font-size: 9px;
+  }
+}

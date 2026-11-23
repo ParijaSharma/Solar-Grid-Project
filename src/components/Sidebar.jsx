@@ -4,69 +4,51 @@ import {
   Activity,
   TrendingUp,
   FileText,
-  Leaf
+  Settings,
 } from "lucide-react";
+import "./OwnerSidebar.css";
 
 function Sidebar({ activeTab = "overview", onSelectTab }) {
-  const handleNav = (tab) => {
-    if (onSelectTab) onSelectTab(tab);
-  };
-
   const menuItems = [
     { id: "overview", label: "Overview", Icon: LayoutDashboard },
-    { id: "farms", label: "Solar Farms", Icon: Sun },
+    { id: "farms", label: "Solar farms", Icon: Sun },
     { id: "performance", label: "Performance", Icon: Activity },
-    { id: "forecast", label: "Forecast", Icon: TrendingUp },
+    { id: "forecast", label: "Energy forecast", Icon: TrendingUp },
     { id: "reports", label: "Reports", Icon: FileText },
-    { id: "settings", label: "Settings", Icon: FileText },
+    { id: "settings", label: "Settings", Icon: Settings },
   ];
 
   return (
-    <aside className="sidebar">
-      <div className="logo">
-        <div className="logo-icon">☀</div>
-        <div>
-          <h2>SOLARGRID</h2>
-          <span>Solar Farm Monitoring</span>
-        </div>
+    <aside className="sidebar owner-sidebar">
+      <div className="owner-logo">
+        <Sun size={21} />
+        <span>SolarHub <strong>AI</strong></span>
       </div>
 
-      <div className="module">
-        <span>PLANT MONITORING</span>
-      </div>
+      <div className="owner-nav-label">WORKSPACE</div>
 
-      <nav>
+      <nav className="owner-navigation">
         {menuItems.map(({ id, label, Icon }) => (
-          <div
+          <button
             key={id}
-            className={`menu-item ${activeTab === id ? "active" : ""}`}
-            onClick={() => handleNav(id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleNav(id);
-              }
-            }}
+            type="button"
+            className={`owner-nav-item ${
+              activeTab === id ? "active" : ""
+            }`}
+            onClick={() => onSelectTab?.(id)}
           >
-            <Icon size={18} />
+            <Icon size={17} strokeWidth={1.7} />
             <span>{label}</span>
-          </div>
+          </button>
         ))}
       </nav>
 
-      <div className="sidebar-bottom">
-        <div className="clean-energy">
-          <span><Leaf size={18} /></span>
-          <div>
-            <strong>SolarGrid</strong>
-            <small>Monitor. Understand. Improve.</small>
-          </div>
-        </div>
+      <div className="owner-sidebar-footer">
+        Solar farm management
       </div>
     </aside>
   );
 }
 
 export default Sidebar;
+

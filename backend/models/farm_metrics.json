@@ -1,0 +1,21 @@
+{
+  "model": "Farm-level Random Forest",
+  "training_plant": 1,
+  "training_inverters": 22,
+  "training_records": 2525,
+  "test_records": 632,
+  "daylight_records": 303,
+  "mae": 229.3542680757646,
+  "rmse": 495.1613742343597,
+  "r2": 0.9961364213139787,
+  "daylight_mae": 472.498534158708,
+  "daylight_rmse": 714.3761080231927,
+  "plant2_records": 3259,
+  "plant2_cross_evaluation": {
+    "mae": 1852.9241221101668,
+    "rmse": 4254.428273498998,
+    "r2": 0.5463990419244948,
+    "records": 3259,
+    "note": "Cross-plant evaluation, not independent model validation."
+  }
+}

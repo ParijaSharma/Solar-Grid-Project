@@ -1,4 +1,3 @@
-
 import math
 import os
 import json
@@ -16,10 +15,12 @@ from auth_routes import router as auth_router
 from installation_routes import router as installation_router
 from telemetry_routes import router as telemetry_router
 from dashboard_routes import router as dashboard_router
+from farm_routes import router as farm_router
+from farm_telemetry_routes import router as farm_telemetry_router
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = BASE_DIR / "models"
-
 
 try:
     model = joblib.load(MODELS_DIR / "model1_random_forest.joblib")
@@ -37,7 +38,7 @@ except Exception as exc:
 
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:4173"
+    "http://localhost:5173,http://localhost:4173,"
     "http://localhost:5174,http://localhost:4174"
 )
 ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
@@ -49,6 +50,8 @@ app = FastAPI(
 )
 app.include_router(auth_router)
 app.include_router(installation_router)
+app.include_router(farm_router)
+app.include_router(farm_telemetry_router)
 app.include_router(dashboard_router)
 app.include_router(telemetry_router)
 app.add_middleware(

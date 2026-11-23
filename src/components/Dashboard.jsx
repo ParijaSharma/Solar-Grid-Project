@@ -1,24 +1,33 @@
 import React, { useMemo } from "react";
-import "./DashboardSection.css";
 import {
-Activity,BarChart3,CloudSun,RefreshCw,Sun,Thermometer,Zap,} from "lucide-react";
-const getNumber = (...values) => {
+  Activity,ArrowUpRight,BarChart3,CloudSun,RefreshCw,Sun,Thermometer,Zap,Database,TrendingUp,
+} from "lucide-react";
+import {
+  ResponsiveContainer,AreaChart,Area,Line,XAxis,YAxis,CartesianGrid,Tooltip,
+} from "recharts";
+import "./OwnerDashboard.css";
+
+function getNumber(...values) {
   for (const value of values) {
     if (value !== null && value !== undefined && value !== "") {
       const number = Number(value);
+
       if (Number.isFinite(number)) return number;
     }
   }
-  return null;
-};
-const formatNumber = (value, digits = 2) =>
-  value === null || value === undefined
-    ? "—"
-    : Number(value).toLocaleString(undefined, {
-        maximumFractionDigits: digits,
-      });
 
-const formatTime = (timestamp) => {
+  return null;
+}
+
+function formatNumber(value, digits = 2) {
+  if (value === null || value === undefined) return "—";
+
+  return Number(value).toLocaleString("en-IN", {
+    maximumFractionDigits: digits,
+  });
+}
+
+function formatTime(timestamp) {
   if (!timestamp) return "—";
 
   const date = new Date(timestamp);
@@ -27,11 +36,11 @@ const formatTime = (timestamp) => {
     return String(timestamp).slice(11, 16);
   }
 
-  return date.toLocaleTimeString([], {
-    hour: "numeric",
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
     minute: "2-digit",
   });
-};
+}
 
 function DashboardSection({
   selectedPlant = 1,
@@ -39,18 +48,20 @@ function DashboardSection({
   loading,
   error,
   onRefresh,
+  onNavigateTab,
 }) {
-  const plant = selectedPlant;
-  const refreshing = false;
+  const plant = Number(selectedPlant);
 
   const activePlant = useMemo(() => {
     if (!dashboard) return null;
 
-    if (Number(dashboard.selected_plant) !== Number(plant)) {
+    if (
+      Number(dashboard.selected_plant) !== plant
+    ) {
       return null;
     }
 
-    return dashboard.active_plant;
+    return dashboard.active_plant || null;
   }, [dashboard, plant]);
 
   const weather = activePlant?.latest_weather || {};
@@ -62,12 +73,17 @@ function DashboardSection({
 
     return source
       .map((item) => ({
-        timestamp: item.timestamp ?? item.date_time ?? item.DATE_TIME,
+        timestamp:
+          item.timestamp ??
+          item.date_time ??
+          item.DATE_TIME,
+
         actual: getNumber(
           item.actual_ac_power,
           item.ac_power,
           item.inverter_actual
         ),
+
         predicted: getNumber(
           item.predicted_ac_power,
           item.inverter_predicted
@@ -76,8 +92,7 @@ function DashboardSection({
       .filter(
         (item) =>
           item.timestamp &&
-          item.actual !== null &&
-          item.predicted !== null
+          item.actual !== null
       )
       .sort(
         (a, b) =>
@@ -86,113 +101,35 @@ function DashboardSection({
       );
   }, [activePlant]);
 
-  const chart = useMemo(() => {
-    if (records.length < 2) return null;
+  const latestRecord = records.at(-1);
 
-    const width = 1000;
-    const height = 390;
-
-    const padding = {
-      top: 30,
-      right: 28,
-      bottom: 55,
-      left: 72,
-    };
-
-    const values = records.flatMap((item) => [
-      item.actual,
-      item.predicted,
-    ]);
-
-    const minValue = Math.min(0, ...values);
-    const maxValue = Math.max(...values, 1);
-    const range = maxValue - minValue || 1;
-
-    const plotWidth = width - padding.left - padding.right;
-    const plotHeight = height - padding.top - padding.bottom;
-
-    const x = (index) =>
-      padding.left +
-      (index / (records.length - 1)) * plotWidth;
-
-    const y = (value) =>
-      padding.top +
-      ((maxValue - value) / range) * plotHeight;
-
-    const createPath = (key) =>
-      records
-        .map(
-          (item, index) =>
-            `${index === 0 ? "M" : "L"} ${x(index)} ${y(item[key])}`
-        )
-        .join(" ");
-
-    const actualPath = createPath("actual");
-    const predictedPath = createPath("predicted");
-
-    const actualArea = [
-      actualPath,
-      `L ${x(records.length - 1)} ${y(minValue)}`,
-      `L ${x(0)} ${y(minValue)}`,
-      "Z",
-    ].join(" ");
-
-    const tickCount = 5;
-
-    const yTicks = Array.from(
-      { length: tickCount },
-      (_, index) => {
-        const value =
-          maxValue - (index / (tickCount - 1)) * range;
-
-        return {
-          value,
-          y: y(value),
-        };
-      }
-    );
-
-    const xTickIndexes = Array.from(
-      new Set(
-        Array.from({ length: Math.min(6, records.length) }, (_, i) =>
-          Math.round(
-            (i * (records.length - 1)) /
-              (Math.min(6, records.length) - 1)
-          )
-        )
-      )
-    );
-
-    return {
-      width,
-      height,
-      padding,
-      x,
-      y,
-      actualPath,
-      predictedPath,
-      actualArea,
-      yTicks,
-      xTickIndexes,
-    };
-  }, [records]);
-
-  const peakActual =
+  const peakPower =
     records.length > 0
       ? Math.max(...records.map((item) => item.actual))
       : null;
 
-  const averageActual =
+  const averagePower =
     records.length > 0
-      ? records.reduce((sum, item) => sum + item.actual, 0) /
-        records.length
+      ? records.reduce(
+          (sum, item) => sum + item.actual,
+          0
+        ) / records.length
       : null;
 
-  const averagePredicted =
-    records.length > 0
-      ? records.reduce((sum, item) => sum + item.predicted, 0) /
-        records.length
-      : null;
+  const averagePredicted = useMemo(() => {
+    const comparable = records.filter(
+      (item) => item.predicted !== null
+    );
+
+    if (!comparable.length) return null;
+
+    return (
+      comparable.reduce(
+        (sum, item) => sum + item.predicted,
+        0
+      ) / comparable.length
+    );
+  }, [records]);
 
   const irradiation = getNumber(
     weather.irradiation,
@@ -209,17 +146,20 @@ function DashboardSection({
     weather.MODULE_TEMPERATURE
   );
 
-  const hasComparableData =
-    plant === 1 &&
-    records.length >= 2 &&
-    activePlant?.scale_note !== "not_comparable";
+  const chartRecords = records.slice(-70);
+
+  const chartHasPrediction =
+    chartRecords.length > 1 &&
+    chartRecords.some(
+      (item) => item.predicted !== null
+    );
 
   if (loading) {
     return (
-      <section className="dashboard-section">
-        <div className="dashboard-loading">
-          <RefreshCw className="spin" size={22} />
-          <span>Loading SolarGrid dashboard...</span>
+      <section className="owner-dashboard">
+        <div className="owner-loading">
+          <RefreshCw className="owner-spin" size={22} />
+          Loading your solar farm...
         </div>
       </section>
     );
@@ -227,368 +167,381 @@ function DashboardSection({
 
   if (error && !dashboard) {
     return (
-      <section className="dashboard-section">
-        <div className="dashboard-error">
+      <section className="owner-dashboard">
+        <div className="owner-error">
           <Activity size={24} />
-          <h3>Unable to load dashboard</h3>
+          <h3>Unable to load your plant data</h3>
           <p>{error}</p>
-          <button onClick={onRefresh}>
-            Try again
-          </button>
+          <button onClick={onRefresh}>Try again</button>
         </div>
       </section>
     );
   }
 
+  const plantName =
+    activePlant?.name ||
+    (plant === 1 ? "Solar Farm A" : "Solar Farm B");
+
   return (
-    <section className="dashboard-section">
-      {/* HEADER */}
-      <div className="dashboard-heading">
+    <section className="owner-dashboard">
+      <div className="owner-section-heading">
         <div>
-          <span className="dashboard-eyebrow">
-            SOLAR FARM ANALYTICS
-          </span>
-          <h2>Generation Overview</h2>
-          <p>
-            Monitor historical solar generation and model predictions.
-          </p>
+          <span>YOUR PLANT AT A GLANCE</span>
+          <h3><Sun size={20} className="owner-kpii-icon"/>Generation summary</h3>
         </div>
-
-        <div className="dashboard-actions">
-          <span className="chart-record-count">
-            Plant {selectedPlant}
-          </span>
-
-          <button
-            className="refresh-button"
-            onClick={onRefresh}
-            disabled={refreshing}
-            aria-label="Refresh dashboard"
-          >
-            <RefreshCw
-              size={15}
-              className={refreshing ? "spin" : ""}
-            />
-          </button>
+        <div>
+        <span className="owner-record-label">
+          {records.length} recorded observations
+        </span>
+        <button
+          className="owner-refresh-button"
+          onClick={onRefresh}
+          aria-label="Refresh plant data"
+        >
+          <RefreshCw size={16} />
+          Refresh data
+        </button>
         </div>
       </div>
 
-      {/* MODE NOTICE */}
-      <div className="historical-notice">
-        <span className="notice-dot" />
-        <div>
-          <strong>Historical dataset · Demo mode</strong>
-          <span>
-            Showing recorded observations, not live sensor telemetry.
-          </span>
-        </div>
-      </div>
-
-      {/* KPI CARDS */}
-      <div className="dashboard-kpi-grid">
-        <article className="dashboard-kpi-card">
-          <div className="kpi-icon green">
+      <div className="owner-kpi-grid">
+        <article className="owner-kpi-card">
+          <div className="owner-kpi-icon green">
             <Zap size={19} />
           </div>
+
           <span>Peak recorded power</span>
-          <strong>{formatNumber(peakActual)}</strong>
-          <small>Across displayed records</small>
+
+          <strong>{formatNumber(peakPower)}</strong>
+
+          <small>Highest observed AC power</small>
         </article>
 
-        <article className="dashboard-kpi-card">
-          <div className="kpi-icon blue">
+        <article className="owner-kpi-card">
+          <div className="owner-kpi-icon blue">
             <Activity size={19} />
           </div>
-          <span>Average actual power</span>
-          <strong>{formatNumber(averageActual)}</strong>
-          <small>Across displayed records</small>
+
+          <span>Average recorded power</span>
+
+          <strong>{formatNumber(averagePower)}</strong>
+
+          <small>Across displayed observations</small>
         </article>
 
-        <article className="dashboard-kpi-card">
-          <div className="kpi-icon purple">
-            <BarChart3 size={19} />
+        <article className="owner-kpi-card">
+          <div className="owner-kpi-icon purple">
+            <TrendingUp size={19} />
           </div>
-          <span>Average predicted power</span>
+
+          <span>Average expected power</span>
+
           <strong>
-            {hasComparableData ? formatNumber(averagePredicted) : "—"}
+            {formatNumber(averagePredicted)}
           </strong>
+
           <small>
-            {hasComparableData ? "Model output" : "Comparison unavailable"}
+            {averagePredicted === null
+              ? "Comparable model output unavailable"
+              : "Model estimate"}
           </small>
         </article>
 
-        <article className="dashboard-kpi-card">
-          <div className="kpi-icon orange">
+        <article className="owner-kpi-card">
+          <div className="owner-kpi-icon orange">
             <Sun size={19} />
           </div>
-          <span>Solar irradiance</span>
+
+          <span>Latest irradiation</span>
+
           <strong>
-            {irradiation !== null
-              ? `${formatNumber(irradiation, 3)}`
-              : "—"}
+            {formatNumber(irradiation, 3)}
           </strong>
-          <small>Latest available weather record</small>
+
+          <small>Dataset measurement scale</small>
         </article>
       </div>
 
-      {/* GENERATION GRAPH */}
-      <article className="dashboard-card generation-card">
-        <div className="chart-card-header">
+      <article className="owner-card owner-generation-card">
+        <div className="owner-card-heading">
           <div>
-            <div className="chart-title">
-              <BarChart3 size={19} />
-              <h3>Power Output Over Time</h3>
-            </div>
+            <span className="owner-card-eyebrow">
+              GENERATION ANALYTICS
+            </span>
+
+            <h3>Power generation over time</h3>
+
             <p>
-              Actual generation compared with model predictions at each
-              recorded timestamp.
+              Recorded plant generation across the selected
+              historical period.
             </p>
           </div>
 
-          <span className="chart-record-count">
-            {records.length} records
-          </span>
+          <button
+            className="owner-text-button"
+            onClick={() => onNavigateTab?.("performance")}
+          >
+            View performance
+            <ArrowUpRight size={15} />
+          </button>
         </div>
 
-        {hasComparableData && chart ? (
+        {chartRecords.length > 1 ? (
           <>
-            <div className="chart-legend">
+            <div className="owner-chart-legend">
               <span>
-                <i className="legend-swatch actual-swatch" />
-                Actual power
+                <i className="owner-legend-dot actual" />
+                Actual generation
               </span>
+
+              {chartHasPrediction && (
+                <span>
+                  <i className="owner-legend-dot predicted" />
+                  Expected generation
+                </span>
+              )}
+            </div>
+
+            <div className="owner-chart">
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart
+                  data={chartRecords}
+                  margin={{
+                    top: 10,
+                    right: 12,
+                    left: 0,
+                    bottom: 5,
+                  }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="ownerPowerFill"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="#16a36a"
+                        stopOpacity={0.2}
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#16a36a"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  <CartesianGrid
+                    strokeDasharray="4 5"
+                    vertical={false}
+                    stroke="var(--owner-grid)"
+                  />
+
+                  <XAxis
+                    dataKey="timestamp"
+                    tickFormatter={formatTime}
+                    minTickGap={35}
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--owner-muted)",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+
+                  <YAxis
+                    width={65}
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--owner-muted)",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) =>
+                      Number(value).toLocaleString("en-IN", {
+                        notation: "compact",
+                        maximumFractionDigits: 1,
+                      })
+                    }
+                  />
+
+                  <Tooltip
+                    labelFormatter={(value) =>
+                      new Date(value).toLocaleString("en-IN")
+                    }
+                    formatter={(value, name) => [
+                      formatNumber(value),
+                      name === "actual"
+                        ? "Actual power"
+                        : "Expected power",
+                    ]}
+                    contentStyle={{
+                      background: "var(--owner-tooltip)",
+                      border: "1px solid var(--owner-border)",
+                      borderRadius: 10,
+                      fontSize: 12,
+                    }}
+                  />
+
+                  <Area
+                    type="monotone"
+                    dataKey="actual"
+                    name="actual"
+                    stroke="#16a36a"
+                    strokeWidth={2.5}
+                    fill="url(#ownerPowerFill)"
+                    connectNulls
+                  />
+
+                  {chartHasPrediction && (
+                    <Line
+                      type="monotone"
+                      dataKey="predicted"
+                      name="predicted"
+                      stroke="#6389ee"
+                      strokeWidth={2}
+                      dot={false}
+                      connectNulls
+                    />
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="owner-chart-footer">
               <span>
-                <i className="legend-swatch predicted-swatch" />
-                Predicted power
+                Latest observation:{" "}
+                <strong>
+                  {formatTime(latestRecord?.timestamp)}
+                </strong>
+              </span>
+
+              <span>
+                Values shown in backend AC_POWER units
               </span>
             </div>
-
-            <div className="power-chart-wrapper">
-              <svg
-                className="power-chart"
-                viewBox={`0 0 ${chart.width} ${chart.height}`}
-                role="img"
-                aria-label="Actual and predicted power at each historical timestamp"
-              >
-                <defs>
-                  <linearGradient
-                    id="actualPowerGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor="#16a36a"
-                      stopOpacity=".22"
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor="#16a36a"
-                      stopOpacity="0"
-                    />
-                  </linearGradient>
-                </defs>
-
-                {/* Y-axis grid */}
-                {chart.yTicks.map((tick, index) => (
-                  <g key={index}>
-                    <line
-                      x1={chart.padding.left}
-                      y1={tick.y}
-                      x2={chart.width - chart.padding.right}
-                      y2={tick.y}
-                      className="chart-grid-line"
-                    />
-                    <text
-                      x={chart.padding.left - 14}
-                      y={tick.y + 4}
-                      textAnchor="end"
-                      className="chart-axis-text"
-                    >
-                      {formatNumber(tick.value, 1)}
-                    </text>
-                  </g>
-                ))}
-
-                {/* Actual area */}
-                <path
-                  d={chart.actualArea}
-                  fill="url(#actualPowerGradient)"
-                />
-
-                {/* Actual line */}
-                <path
-                  d={chart.actualPath}
-                  className="actual-power-line"
-                />
-
-                {/* Predicted line */}
-                <path
-                  d={chart.predictedPath}
-                  className="predicted-power-line"
-                />
-
-                {/* Every timestamp is plotted */}
-                {records.map((item, index) => (
-                  <g key={`${item.timestamp}-${index}`}>
-                    <circle
-                      cx={chart.x(index)}
-                      cy={chart.y(item.actual)}
-                      r="3"
-                      className="actual-data-point"
-                    >
-                      <title>
-                        {formatTime(item.timestamp)}
-                        {"\n"}Actual: {formatNumber(item.actual)}
-                      </title>
-                    </circle>
-
-                    <circle
-                      cx={chart.x(index)}
-                      cy={chart.y(item.predicted)}
-                      r="3"
-                      className="predicted-data-point"
-                    >
-                      <title>
-                        {formatTime(item.timestamp)}
-                        {"\n"}Predicted: {formatNumber(item.predicted)}
-                      </title>
-                    </circle>
-                  </g>
-                ))}
-
-                {/* X-axis timestamps */}
-                {chart.xTickIndexes.map((index) => (
-                  <text
-                    key={index}
-                    x={chart.x(index)}
-                    y={chart.height - 17}
-                    textAnchor="middle"
-                    className="chart-axis-text"
-                  >
-                    {formatTime(records[index].timestamp)}
-                  </text>
-                ))}
-              </svg>
-            </div>
-
-            <div className="chart-footer">
-              <div>
-                <span>Actual average</span>
-                <strong>{formatNumber(averageActual)}</strong>
-              </div>
-              <div>
-                <span>Predicted average</span>
-                <strong>{formatNumber(averagePredicted)}</strong>
-              </div>
-              <div>
-                <span>Peak actual</span>
-                <strong>{formatNumber(peakActual)}</strong>
-              </div>
-            </div>
-
-            <p className="chart-footnote">
-              Power values are displayed in the units returned by the
-              backend. All available chart timestamps are plotted.
-            </p>
           </>
         ) : (
-          <div className="chart-empty">
+          <div className="owner-empty-state">
             <BarChart3 size={30} />
-            <strong>
-              {plant === 2
-                ? "Comparable predictions are not available for Plant 2."
-                : "Not enough comparable generation records."}
-            </strong>
+            <strong>Generation history is unavailable</strong>
             <span>
-              {plant === 2
-                ? "The current model was trained on Plant 1 data. A separate compatible model is needed for Plant 2."
-                : "Check that the backend returns actual_ac_power and predicted_ac_power for at least two timestamps."}
+              More recorded observations are needed to display
+              the generation trend.
             </span>
           </div>
         )}
       </article>
 
-      {/* WEATHER */}
-      <div className="dashboard-bottom-grid">
-        <article className="dashboard-card weather-card">
-          <div className="section-card-heading">
-            <div className="section-icon">
-              <CloudSun size={19} />
-            </div>
+      <div className="owner-bottom-grid">
+        <article className="owner-card">
+          <div className="owner-card-heading">
             <div>
-              <h3>Historical Weather Conditions</h3>
+              <span className="owner-card-eyebrow">
+                ENVIRONMENT
+              </span>
+              <h3>Latest weather conditions</h3>
               <p>Latest available weather observation</p>
+            </div>
+
+            <div className="owner-kpi-icon green">
+              <CloudSun size={19} />
             </div>
           </div>
 
-          <div className="weather-reading-grid">
-            <div className="weather-reading">
+          <div className="owner-weather-grid">
+            <div>
               <Sun size={17} />
-              <span>Irradiance</span>
-              <strong>
-                {irradiation !== null
-                  ? `${formatNumber(irradiation, 3)}`
-                  : "—"}
-              </strong>
+              <span>Irradiation</span>
+              <strong>{formatNumber(irradiation, 3)}</strong>
             </div>
 
-            <div className="weather-reading">
+            <div>
               <Thermometer size={17} />
               <span>Ambient temperature</span>
               <strong>
-                {ambientTemperature !== null
-                  ? `${formatNumber(ambientTemperature)} °C`
-                  : "—"}
+                {ambientTemperature === null
+                  ? "—"
+                  : `${formatNumber(ambientTemperature)} °C`}
               </strong>
             </div>
 
-            <div className="weather-reading">
+            <div>
               <Thermometer size={17} />
               <span>Module temperature</span>
               <strong>
-                {moduleTemperature !== null
-                  ? `${formatNumber(moduleTemperature)} °C`
-                  : "—"}
+                {moduleTemperature === null
+                  ? "—"
+                  : `${formatNumber(moduleTemperature)} °C`}
               </strong>
             </div>
           </div>
         </article>
 
-        <article className="dashboard-card dataset-card">
-          <div className="section-card-heading">
-            <div className="section-icon">
-              <Activity size={19} />
-            </div>
+        <article className="owner-card">
+          <div className="owner-card-heading">
             <div>
-              <h3>Dataset Information</h3>
-              <p>Source and model context</p>
+              <span className="owner-card-eyebrow">
+                PLANT INFORMATION
+              </span>
+              <h3>Data and connectivity</h3>
+              <p>Current prototype data status</p>
+            </div>
+
+            <div className="owner-kpi-icon blue">
+              <Database size={19} />
             </div>
           </div>
 
-          <div className="dataset-info-row">
+          <div className="owner-info-row">
             <span>Selected plant</span>
             <strong>Plant {plant}</strong>
           </div>
 
-          <div className="dataset-info-row">
-            <span>Data mode</span>
-            <strong>Historical replay</strong>
+          <div className="owner-info-row">
+            <span>Data source</span>
+            <strong>Historical dataset</strong>
           </div>
 
-          <div className="dataset-info-row">
-            <span>Records plotted</span>
+          <div className="owner-info-row">
+            <span>Recorded observations</span>
             <strong>{records.length}</strong>
           </div>
 
-          <div className="dataset-info-row">
-            <span>Telemetry</span>
-            <strong className="not-live">Not connected</strong>
+          <div className="owner-info-row">
+            <span>Live IoT connection</span>
+            <strong className="owner-pending">
+              Not connected
+            </strong>
           </div>
         </article>
       </div>
+
+      <article className="owner-insight-card">
+        <div className="owner-insight-icon">
+          <Activity size={20} />
+        </div>
+
+        <div>
+          <strong>Operational intelligence</strong>
+          <p>
+            Generation monitoring is available from historical
+            plant records. Automated equipment fault alerts and
+            live monitoring will be added after their data
+            integrations are completed.
+          </p>
+        </div>
+
+        <button
+          onClick={() => onNavigateTab?.("forecast")}
+        >
+          Explore forecast
+          <ArrowUpRight size={15} />
+        </button>
+      </article>
     </section>
   );
 }

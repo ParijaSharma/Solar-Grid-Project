@@ -1,12 +1,8 @@
-
-
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-
 export async function apiFetch(path, options = {}) {
   try {
     const token = localStorage.getItem("solarhub-token");
-
     const response = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers: {
@@ -16,9 +12,8 @@ export async function apiFetch(path, options = {}) {
       },
     });
 
-    const data = response.status === 204
-      ? null
-      : await response.json();
+    const data =
+      response.status === 204 ? null : await response.json();
 
     if (!response.ok) {
       const message =
@@ -42,9 +37,7 @@ export async function apiFetch(path, options = {}) {
 }
 
 export const fetchHealth = () => apiFetch("/api/health");
-
 export const fetchModelInfo = () => apiFetch("/api/model-info");
-
 export const fetchPrediction = (payload) =>
   apiFetch("/api/predict", {
     method: "POST",
@@ -53,6 +46,27 @@ export const fetchPrediction = (payload) =>
 
 export const fetchHistory = (plant = 1, limit = 200) =>
   apiFetch(`/api/history?plant=${plant}&limit=${limit}`);
-
 export const fetchDashboard = (plant = 1) =>
   apiFetch(`/api/dashboard?plant=${plant}`);
+
+// Farm-level model endpoints
+export const fetchFarmMetrics = () =>
+  apiFetch("/api/farm/metrics");
+export const fetchFarmHistory = (plant = 1, limit = 200) =>
+  apiFetch(`/api/farm/history?plant=${plant}&limit=${limit}`);
+
+// Starts a historical CSV replay and stores the results in MongoDB.
+export const startFarmReplay = (limit = 200) =>
+  apiFetch(`/api/farm-telemetry/replay?limit=${limit}`, {
+    method: "POST",
+  });
+
+// Retrieves a previously created replay belonging to the logged-in user.
+export const fetchFarmReplay = (replayId) =>
+  apiFetch(`/api/farm-telemetry/replay/${replayId}`);
+// Farm-level manual prediction endpoint.
+export const fetchFarmPrediction = (payload) =>
+  apiFetch("/api/farm/predict", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
